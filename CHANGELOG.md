@@ -6,6 +6,27 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ## [Sprint 18.09] - 2026-09-28
 
+### 🔐 Autenticação Sanctum & Model User Blindada (Semana 1 - Tarefa 1.2)
+
+- **Model `User.php`:**
+    - Integrado trait `HasApiTokens` do Laravel Sanctum.
+    - Implementados casts de criptografia LGPD nativos: `'cpf' => 'encrypted'` e `'phone' => 'encrypted'` (AES-256 via `APP_KEY`), além de `'password' => 'hashed'`, `'birth_date' => 'date'` e `'active' => 'boolean'`.
+    - Adicionados helpers `getFullNameAttribute()`, `isAdmin()` e `isCustomer()`.
+    - Mapeados relacionamentos `addresses()` e `socialAccounts()`.
+- **Models `Address.php` e `SocialAccount.php`:**
+    - Criadas models complementares com relacionamento `belongsTo(User::class)` para consistência da arquitetura.
+- **Form Requests (`app/Http/Requests/Auth`):**
+    - `RegisterRequest.php`: Validações de nome, sobrenome, CPF, telefone, e-mail único e confirmação de senha.
+    - `LoginRequest.php`: Validações de e-mail e senha.
+- **Controller & Endpoints (`app/Http/Controllers/AuthController.php`):**
+    - `POST /api/v1/auth/register`: Cadastro de clientes com emissão de token Sanctum.
+    - `POST /api/v1/auth/login`: Autenticação e emissão de token Sanctum.
+    - `GET /api/v1/auth/me`: Retorno dos dados do usuário logado (protegido via `auth:sanctum`).
+    - `POST /api/v1/auth/logout`: Revogação do Bearer Token atual (protegido via `auth:sanctum`).
+    - Contrato JSON 100% alinhado com o esperado pelo front-end do Fabio: `{ "message": "...", "user": { ... }, "token": "..." }`.
+- **Testes Automatizados (`tests/Feature/AuthTest.php`):**
+    - 4 testes cobrindo registro, login, bloqueio de credenciais inválidas, acesso autenticado, revogação e validação de criptografia bruta no banco de dados.
+
 ### 🗄️ Atualização e Alinhamento das Migrations (Planos Operacionais)
 
 - **`payments` (`2026_09_04_000003_create_payments_table.php`):**

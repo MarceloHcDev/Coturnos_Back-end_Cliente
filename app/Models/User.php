@@ -2,31 +2,44 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Tabela associada ao modelo.
      *
-     * @var list<string>
+     * @var string
+     */
+    protected $table = 'users';
+
+    /**
+     * Atributos atribuíveis em massa.
+     *
+     * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
+        'cpf',
         'email',
+        'phone',
+        'birth_date',
         'password',
+        'role',
+        'active',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Atributos ocultados na serialização (JSON).
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -34,15 +47,58 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Casts de tipos nativos e criptografia LGPD.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
             'password' => 'hashed',
+            'active' => 'boolean',
+            'cpf' => 'encrypted',   // Criptografia AES-256-CBC nativa via APP_KEY (LGPD)
+            'phone' => 'encrypted', // Criptografia AES-256-CBC nativa via APP_KEY (LGPD)
         ];
+    }
+
+    /**
+     * Accessor para retornar o nome completo do cliente.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * Verifica se o usuário é administrador.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verifica se o usuário é cliente.
+     */
+    public function isCustomer(): bool
+    {
+        return in_array($this->role, ['customer', 'cliente']);
+    }
+
+    /**
+     * Relacionamento 1:N com endereços do usuário.
+     */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    /**
+     * Relacionamento 1:N com redes sociais vinculadas (Google, Facebook, Apple).
+     */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
     }
 }
