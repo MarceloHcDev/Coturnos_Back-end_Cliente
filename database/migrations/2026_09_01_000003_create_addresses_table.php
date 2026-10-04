@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('city', 60);
             $table->string('state', 2);
             $table->boolean('is_default')->default(false);
+            $table->softDeletes(); // Preserva integridade de pedidos e notas fiscais antigas
             $table->timestamps();
         });
     }

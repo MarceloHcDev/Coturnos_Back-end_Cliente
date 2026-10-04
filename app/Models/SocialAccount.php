@@ -13,7 +13,6 @@ class SocialAccount extends Model
     protected $table = 'social_accounts';
 
     protected $fillable = [
-        'user_id',
         'provider_name',
         'provider_id',
     ];
@@ -21,5 +20,15 @@ class SocialAccount extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Busca rápida de conta social vinculada pelo provedor e ID externo.
+     */
+    public static function findByProvider(string $provider, string $providerId): ?self
+    {
+        return static::where('provider_name', $provider)
+            ->where('provider_id', $providerId)
+            ->first();
     }
 }

@@ -15,6 +15,18 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Prepara e normaliza os dados antes da validação.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email') && is_string($this->input('email'))) {
+            $this->merge([
+                'email' => strtolower(trim($this->input('email'))),
+            ]);
+        }
+    }
+
+    /**
      * Regras de validação para login.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -22,8 +34,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'max:191'],
+            'password' => ['required', 'string', 'max:128'],
         ];
     }
 
@@ -37,7 +49,9 @@ class LoginRequest extends FormRequest
         return [
             'email.required' => 'O e-mail é obrigatório.',
             'email.email' => 'Informe um e-mail válido.',
+            'email.max' => 'O e-mail não pode conter mais de 191 caracteres.',
             'password.required' => 'A senha é obrigatória.',
+            'password.max' => 'A senha não pode conter mais de 128 caracteres.',
         ];
     }
 }
