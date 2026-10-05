@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('first_name', 60);
             $table->string('last_name', 60);
-            $table->string('cpf', 255); // Encrypted using AES-256-CBC via APP_KEY (LGPD compliant)
+            $table->string('cpf', 255)->nullable(); // Encrypted using AES-256-CBC via APP_KEY (LGPD compliant); nullable for social login
             $table->string('cpf_hash', 64)->unique()->nullable()->index(); // HMAC-SHA256 blind index para unicidade e busca
             $table->string('email', 191)->unique();
-            $table->string('phone', 255); // Encrypted using AES-256-CBC via APP_KEY (LGPD compliant)
+            $table->string('phone', 255)->nullable(); // Encrypted using AES-256-CBC via APP_KEY (LGPD compliant); nullable for social login
             $table->date('birth_date')->nullable();
             $table->string('password', 255)->nullable(); // Argon2id/Bcrypt hash; nullable for pure social OAuth login
             $table->enum('role', ['customer', 'admin', 'cliente'])->default('customer');

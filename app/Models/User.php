@@ -170,4 +170,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(SocialAccount::class);
     }
+
+    /**
+     * Retorna as abilities do token Sanctum com base no role do usuário.
+     *
+     * @return array<int, string>
+     */
+    public function tokenAbilities(): array
+    {
+        return $this->role instanceof UserRole
+            ? $this->role->abilities()
+            : ['customer'];
+    }
 }

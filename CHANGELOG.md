@@ -4,6 +4,42 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Semana 2 — Tarefa 2.1] - 2026-10-04
+
+### 🌐 Login Social Multi-Provider (Google, Facebook, Apple) & Anti Account-Takeover
+
+Implementação completa da autenticação social via Laravel Socialite, integrando provedores OAuth e aplicando proteções contra sequestro de conta, IDOR e escalada de privilégios.
+
+- **Pacotes Instalados:**
+    - `laravel/socialite` (v5.31.0)
+    - `socialiteproviders/apple` (v6.1.0)
+- **Configurações & Providers:**
+    - `config/services.php`: Adicionados blocos para `google`, `facebook` e `apple` lendo do `.env`.
+    - `app/Providers/AppServiceProvider.php`: Registrado o listener de extensão do driver da Apple (`Event::listen(SocialiteWasCalled::class, [AppleExtendSocialite::class, 'handle'])`).
+- **Banco de Dados & Migrations:**
+    - `2026_09_01_000001_create_users_table.php`: Colunas `cpf` e `phone` ajustadas para `nullable` (já que provedores OAuth não fornecem dados fiscais e telefones brasileiros no handshake inicial; serão coletados na finalização de compra ou atualização de perfil).
+    - `2026_09_01_000002_create_social_accounts_table.php`: Constraint única `$table->unique(['provider_name', 'provider_id'])` verificada e validada como segunda camada de defesa no banco de dados.
+- **Controller `app/Http/Controllers/AuthSocialController.php`:**
+    - **Whitelist de Provedores:** Apenas `['google', 'facebook', 'apple']` são aceitos. Requisições com provedores arbitrários são rejeitadas com `400 Bad Request`.
+    - **`redirect()`:** Suporta redirecionamento direto de browser (302) e retorno JSON com URL para SPAs React (`wantsJson()`).
+    - **`callback()` com Regra Anti-Sequestro de Conta (Anti Account-Takeover):**
+        1. Se `SocialAccount` já existir por `provider_name` + `provider_id`: autentica o usuário e emite token Sanctum.
+        2. Se não existir vínculo, verifica se o e-mail retornado foi atestado como verificado pelo provedor (`email_verified` / `verified_email`).
+        3. Se não houver usuário prévio com o e-mail: cria novo `User` com senha nula e vincula a conta social.
+        4. Se o usuário já existir E o e-mail for verificado: vincula a conta social e autentica com segurança.
+        5. Se o usuário já existir E o e-mail NÃO for verificado: **bloqueia o vínculo automático** e responde `409 Conflict` com `requires_password_confirmation = true`.
+    - **`confirmLink()`:** Endpoint para confirmação manual de titularidade através da senha atual da conta para completar vínculos não verificados.
+    - **Anti-IDOR:** Toda criação de `SocialAccount` é realizada estritamente via `$user->socialAccounts()->create([...])`.
+    - **Escopo e Validade dos Tokens:** Tokens Sanctum emitidos com abilities tipadas (`tokenAbilities()` baseado no `UserRole`) e expiração de 7 dias (`now()->addDays(7)`).
+- **Rotas (`routes/api.php`):**
+    - `GET /api/v1/auth/{provider}/redirect`
+    - `GET /api/v1/auth/{provider}/callback` (protegido com `throttle:10,1`)
+    - `POST /api/v1/auth/{provider}/confirm-link` (protegido com `throttle:6,1`)
+- **Testes Automatizados (`tests/Feature/SocialAuthTest.php`):**
+    - 8 novos testes cobrindo: whitelist de provedores, primeiro login (criação + vínculo), segundo login (reaproveitamento sem duplicar), bloqueio de provider_id duplicado por constraint única, vinculação automática com e-mail verificado, proteção anti account-takeover com e-mail não verificado + confirmação de senha, validação de abilities do token por papel de usuário e rate limiting no callback.
+
+---
+
 ## [Sprint 18.09] - 2026-10-01 / 2026-10-04
 
 ### 🔗 Alinhamento do Contrato de API com o Frontend React (Semana 1 — Tarefa 1.2)

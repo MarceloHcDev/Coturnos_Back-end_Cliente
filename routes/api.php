@@ -25,6 +25,18 @@ Route::prefix('v1')->group(function () {
             // Revoga TODOS os tokens ativos do cliente (sessão comprometida / troca de senha)
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         });
+
+        // ─────────────────────────────────────────────────────────────────
+        // Login Social (Google, Facebook, Apple) — Socialite (Semana 2)
+        // throttle:10,1 no callback (proteção contra abuso de autenticação)
+        // ─────────────────────────────────────────────────────────────────
+        Route::get('/{provider}/redirect', [\App\Http\Controllers\AuthSocialController::class, 'redirect'])
+            ->middleware('throttle:20,1');
+
+        Route::get('/{provider}/callback', [\App\Http\Controllers\AuthSocialController::class, 'callback'])
+            ->middleware('throttle:10,1');
+        Route::post('/{provider}/confirm-link', [\App\Http\Controllers\AuthSocialController::class, 'confirmLink'])
+            ->middleware('throttle:6,1');
     });
 
     // ─────────────────────────────────────────────────────────────────────

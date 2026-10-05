@@ -46,7 +46,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('auth-token', ['*'], now()->addDays(7))->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities(), now()->addDays(7))->plainTextToken;
 
         return response()->json([
             'message' => 'Cadastro realizado com sucesso.',
@@ -81,7 +81,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth-token', ['*'], now()->addDays(7))->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities(), now()->addDays(7))->plainTextToken;
 
         return response()->json([
             'message' => 'Login realizado com sucesso.',
