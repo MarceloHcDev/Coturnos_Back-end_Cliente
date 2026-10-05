@@ -34,4 +34,17 @@ enum UserRole: string
     {
         return $this === self::CUSTOMER || $this === self::CLIENTE;
     }
+
+    /**
+     * Retorna os escopos/abilities padrão do token Sanctum para o perfil.
+     *
+     * @return array<int, string>
+     */
+    public function abilities(): array
+    {
+        return match ($this) {
+            self::ADMIN => ['admin', 'customer'],
+            self::CUSTOMER, self::CLIENTE => ['customer'],
+        };
+    }
 }
