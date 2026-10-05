@@ -4,6 +4,36 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Semana 3 — Tarefa 3.1] - 2026-10-04
+
+### 📦 SuperFrete Unificado por Carrinho & ViaCEP com Cache Inteligente (24h)
+
+Implementação da infraestrutura de logística, consulta de CEPs e cálculo de frete agregado para N coturnos do carrinho com blindagem de segurança, tipagem estrita de retorno e resiliência a falhas externas.
+
+- **Consulta de CEP (`app/Http/Controllers/CepController.php`):**
+    - **Sanitização Estrita:** Remoção de máscara e validação de tamanho exato de 8 dígitos numéricos antes de qualquer requisição externa ou montagem de chave de cache.
+    - **Cache Inteligente:** Respostas válidas são cacheadas por 24 horas (`now()->addHours(24)`) no Redis/File (`viacep_{cep}`), zerando latência para consultas repetidas.
+    - **TTL Curto para Falhas:** CEPs inexistentes recebem cache temporário de 60 segundos para evitar sobrecarga repetitiva sem travar o CEP por um dia.
+    - **Timeout Explícito:** Timeout de 5 segundos (`Http::timeout(5)`) para não bloquear workers PHP em caso de oscilação do ViaCEP.
+    - **Payload Padronizado:** Normalização compatível com o frontend (`cep`, `logradouro`, `bairro`, `cidade`, `localidade`, `estado`, `uf`).
+- **Refatoração do Cálculo de Frete (`app/Services/SuperFreteService.php` & `app/Http/Controllers/FreteController.php`):**
+    - **Blindagem contra Manipulação de Peso/Dimensão:** Pesos e dimensões foram totalmente expurgados do payload da requisição. O cálculo agora busca obrigatoriamente os produtos no catálogo oficial (`Product`) e deriva o peso e dimensões através do modelo `CoturnoEmbalado` (1.5kg, 14x22x35cm por unidade).
+    - **Cálculo Agregado por Carrinho:** Suporte a N itens com cálculo proporcional de peso e empilhamento vertical de altura, respeitando as restrições máximas dos Correios (30kg e 105cm por dimensão).
+    - **FormRequest com Teto Anti-DoS (`app/Http/Requests/FreteRequest.php`):** Validação estrita exigindo CEP de 8 dígitos e limitando cada item a um teto máximo de 50 unidades, impedindo abusos e sobrecarga de CPU.
+    - **Normalização de Contrato (`app/Http/Resources/FreteResource.php`):** Padronização de tipos de dados para o frontend React:
+        - `valor`: float estrito (ex: `23.90`, nunca string `"R$ 23,90"`).
+        - `prazo_dias`: inteiro estrito (ex: `5`, nunca string `"5 dias"`).
+        - `disponivel`: booleano (`true`/`false`).
+    - **Proteção de Credenciais em Logs:** Tratamento de erros externos sem logar cabeçalhos ou tokens da SuperFrete.
+- **Rotas & Rate Limiting (`routes/api.php`):**
+    - `GET /api/v1/cep/{cep}` (protegido com `throttle:30,1`)
+    - `POST /api/v1/frete` (protegido com `throttle:30,1`)
+- **Testes Automatizados (`tests/Feature/CepTest.php` e `tests/Feature/FreteTest.php`):**
+    - 17 novos testes cobrindo: sanitização de CEP, cache de 24h, erro 404, resiliência 503, rate limiting (30 req/min), cálculo unitário e agregado de frete, rejeição de produtos inexistentes, validação de teto de quantidade (anti-DoS), tratamento de serviço indisponível e tipagem rigorosa de floats e inteiros.
+    - Total de testes do projeto elevado para 55 testes (223 assertions), 100% aprovados.
+
+---
+
 ## [Semana 2 — Tarefa 2.1] - 2026-10-04
 
 ### 🌐 Login Social Multi-Provider (Google, Facebook, Apple) & Anti Account-Takeover
