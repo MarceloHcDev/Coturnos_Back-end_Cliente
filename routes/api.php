@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CepController;
 use App\Http\Controllers\FreteController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,11 +41,12 @@ Route::prefix('v1')->group(function () {
     });
 
     // ─────────────────────────────────────────────────────────────────────
-    // Logística / Frete
-    // throttle:frete → máx 30 req/min por IP.
-    // Protege contra abuso de cota da API SuperFrete (custo financeiro/contratual).
-    // Cache por CEP+dimensões será implementado na Semana 3 (Módulo de Pedidos).
+    // Logística / CEP & Frete (Semana 3)
+    // throttle: 30 req/min por IP (protege cota das APIs ViaCEP e SuperFrete)
     // ─────────────────────────────────────────────────────────────────────
+    Route::get('/cep/{cep}', [CepController::class, 'consultar'])
+        ->middleware('throttle:30,1');
+
     Route::post('/frete', [FreteController::class, 'calcular'])
         ->middleware('throttle:30,1');
 });

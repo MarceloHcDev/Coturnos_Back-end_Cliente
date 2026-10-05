@@ -38,6 +38,7 @@ return [
     'super_frete' => [
         'token' => env('SUPER_FRETE_TOKEN'),
         'url' => env('SUPER_FRETE_URL', 'https://sandbox.superfrete.com/api/v0/calculator'),
+        'from_postal_code' => env('SUPER_FRETE_FROM_CEP', '01153000'),
     ],
 
     /*
