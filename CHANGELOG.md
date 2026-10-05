@@ -14,7 +14,7 @@ Implementação completa da autenticação social via Laravel Socialite, integra
     - `laravel/socialite` (v5.31.0)
     - `socialiteproviders/apple` (v6.1.0)
 - **Configurações & Providers:**
-    - `config/services.php`: Adicionados blocos para `google`, `facebook` e `apple` lendo do `.env`.
+    - `config/services.php`: Adicionados blocos para `google`, `facebook` e `apple` lendo do `.env`. Adicionada chave `social_allowed_emails` mapeando `SOCIAL_AUTH_ALLOWED_EMAILS`.
     - `app/Providers/AppServiceProvider.php`: Registrado o listener de extensão do driver da Apple (`Event::listen(SocialiteWasCalled::class, [AppleExtendSocialite::class, 'handle'])`).
 - **Banco de Dados & Migrations:**
     - `2026_09_01_000001_create_users_table.php`: Colunas `cpf` e `phone` ajustadas para `nullable` (já que provedores OAuth não fornecem dados fiscais e telefones brasileiros no handshake inicial; serão coletados na finalização de compra ou atualização de perfil).
@@ -23,26 +23,34 @@ Implementação completa da autenticação social via Laravel Socialite, integra
     - **Whitelist de Provedores:** Apenas `['google', 'facebook', 'apple']` são aceitos. Requisições com provedores arbitrários são rejeitadas com `400 Bad Request`.
     - **`redirect()`:** Suporta redirecionamento direto de browser (302) e retorno JSON com URL para SPAs React (`wantsJson()`).
     - **`callback()` com Regra Anti-Sequestro de Conta (Anti Account-Takeover):**
-        1. Se `SocialAccount` já existir por `provider_name` + `provider_id`: autentica o usuário e emite token Sanctum.
-        2. Se não existir vínculo, verifica se o e-mail retornado foi atestado como verificado pelo provedor (`email_verified` / `verified_email`).
-        3. Se não houver usuário prévio com o e-mail: cria novo `User` com senha nula e vincula a conta social.
-        4. Se o usuário já existir E o e-mail for verificado: vincula a conta social e autentica com segurança.
-        5. Se o usuário já existir E o e-mail NÃO for verificado: **bloqueia o vínculo automático** e responde `409 Conflict` com `requires_password_confirmation = true`.
+        1. Verificação de whitelist de e-mails via `isEmailAllowed()` antes de qualquer processamento.
+        2. Se `SocialAccount` já existir por `provider_name` + `provider_id`: autentica o usuário e emite token Sanctum.
+        3. Se não existir vínculo, verifica se o e-mail retornado foi atestado como verificado pelo provedor (`email_verified` / `verified_email`).
+        4. Se não houver usuário prévio com o e-mail: cria novo `User` com senha nula e vincula a conta social.
+        5. Se o usuário já existir E o e-mail for verificado: vincula a conta social e autentica com segurança.
+        6. Se o usuário já existir E o e-mail NÃO for verificado: **bloqueia o vínculo automático** e responde `409 Conflict` com `requires_password_confirmation = true`.
     - **`confirmLink()`:** Endpoint para confirmação manual de titularidade através da senha atual da conta para completar vínculos não verificados.
+    - **`isEmailAllowed()`:** Whitelist de e-mails configurável via `SOCIAL_AUTH_ALLOWED_EMAILS` no `.env`. Vazio = produção (libera todos). Preenchido = homologação (restringe à lista separada por vírgula).
+    - **`isEmailVerified()`:** Lê a flag de verificação de e-mail retornada por cada provedor (`email_verified` / `verified_email`). Fail-safe: ausência da flag = não verificado.
     - **Anti-IDOR:** Toda criação de `SocialAccount` é realizada estritamente via `$user->socialAccounts()->create([...])`.
     - **Escopo e Validade dos Tokens:** Tokens Sanctum emitidos com abilities tipadas (`tokenAbilities()` baseado no `UserRole`) e expiração de 7 dias (`now()->addDays(7)`).
 - **Rotas (`routes/api.php`):**
-    - `GET /api/v1/auth/{provider}/redirect`
+    - `GET /api/v1/auth/{provider}/redirect` (protegido com `throttle:20,1`)
     - `GET /api/v1/auth/{provider}/callback` (protegido com `throttle:10,1`)
     - `POST /api/v1/auth/{provider}/confirm-link` (protegido com `throttle:6,1`)
 - **Testes Automatizados (`tests/Feature/SocialAuthTest.php`):**
-    - 8 novos testes cobrindo: whitelist de provedores, primeiro login (criação + vínculo), segundo login (reaproveitamento sem duplicar), bloqueio de provider_id duplicado por constraint única, vinculação automática com e-mail verificado, proteção anti account-takeover com e-mail não verificado + confirmação de senha, validação de abilities do token por papel de usuário e rate limiting no callback.
+    - 10 testes cobrindo: whitelist de provedores, primeiro login (criação + vínculo), segundo login (reaproveitamento sem duplicar), bloqueio de provider_id duplicado por constraint única, vinculação automática com e-mail verificado, proteção anti account-takeover com e-mail não verificado, abilities do token por role, rate limiting no callback, bloqueio de e-mail fora da whitelist e liberação de e-mail autorizado.
+    - `setUp()` garante whitelist vazia por padrão em todos os testes (isolamento com o `.env` local).
+- **`.gitignore`:**
+    - Adicionado `/database/database.sqlite` (banco local não deve subir ao repositório).
+    - Adicionado `/storage/logs/*.log` (logs podem conter dados sensíveis).
 
 ---
 
 ## [Sprint 18.09] - 2026-10-01 / 2026-10-04
 
 ### 🔗 Alinhamento do Contrato de API com o Frontend React (Semana 1 — Tarefa 1.2)
+
 
 Após análise do repositório `luisesoliveira-dev/ecommerce-coturnos-e-cia` (branch `rabello/login-register-axios-implement`), o `RegisterRequest` e o `AuthController` foram ajustados para receber exatamente o payload que o React envia, sem exigir alterações no front-end.
 
