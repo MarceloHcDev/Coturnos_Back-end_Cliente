@@ -71,16 +71,33 @@ class AuthSocialController extends Controller
      *
      * GET /api/v1/auth/{provider}/callback
      */
-    public function callback(Request $request, string $provider): JsonResponse
+    public function callback(Request $request, string $provider): JsonResponse|RedirectResponse
     {
         $this->validateProvider($provider);
 
+        $frontUrl = config('app.front_url', env('FRONT_URL', 'http://localhost:5173'));
+
         try {
+            /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+            $driver = Socialite::driver($provider)->stateless();
+
+            if (! app()->runningUnitTests() && config('app.env') !== 'production' && method_exists($driver, 'setHttpClient')) {
+                $driver->setHttpClient(new \GuzzleHttp\Client(['verify' => false]));
+            }
+
             /** @var \Laravel\Socialite\Contracts\User $socialUser */
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $socialUser = $driver->user();
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Erro no callback social ' . $provider, [
+                'error' => $e->getMessage(),
+            ]);
+
+            $msg = 'Falha ao autenticar com ' . ucfirst($provider) . (config('app.debug') ? ': ' . $e->getMessage() : '.');
+            if (! $request->wantsJson()) {
+                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+            }
             return response()->json([
-                'message' => 'Falha ao autenticar com ' . ucfirst($provider) . '.',
+                'message' => $msg,
                 'error' => config('app.debug') ? $e->getMessage() : null,
             ], 400);
         }
@@ -89,15 +106,23 @@ class AuthSocialController extends Controller
         $email = strtolower(trim((string) $socialUser->getEmail()));
 
         if (empty($email)) {
+            $msg = 'Não foi possível obter um e-mail válido da conta social.';
+            if (! $request->wantsJson()) {
+                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+            }
             return response()->json([
-                'message' => 'Não foi possível obter um e-mail válido da conta social.',
+                'message' => $msg,
             ], 422);
         }
 
         // [WHITELIST]: Verifica se o e-mail está autorizado (proteção de homologação)
         if (! $this->isEmailAllowed($email)) {
+            $msg = 'Acesso social restrito em ambiente de homologação. E-mail não autorizado para testes.';
+            if (! $request->wantsJson()) {
+                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+            }
             return response()->json([
-                'message' => 'Acesso social restrito em ambiente de homologação. E-mail não autorizado para testes.',
+                'message' => $msg,
             ], 403);
         }
 
@@ -108,19 +133,16 @@ class AuthSocialController extends Controller
             $user = $socialAccount->user;
 
             if (! $user || ! $user->active) {
+                $msg = 'Esta conta está inativa. Entre em contato com o suporte.';
+                if (! $request->wantsJson()) {
+                    return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                }
                 return response()->json([
-                    'message' => 'Esta conta está inativa. Entre em contato com o suporte.',
+                    'message' => $msg,
                 ], 403);
             }
 
-            // Emite token com abilities correspondentes ao papel do usuário e expiração de 7 dias
-            $token = $user->createToken('social-token', $user->tokenAbilities(), now()->addDays(7))->plainTextToken;
-
-            return response()->json([
-                'message' => 'Login social realizado com sucesso.',
-                'user' => new UserResource($user),
-                'token' => $token,
-            ]);
+            return $this->respondWithAuth($request, $user, 'Login social realizado com sucesso.', 200);
         }
 
         // b) Se não houver vínculo prévio, checa se o e-mail é verificado
@@ -150,20 +172,18 @@ class AuthSocialController extends Controller
                 'provider_id' => $providerId,
             ]);
 
-            $token = $newUser->createToken('social-token', $newUser->tokenAbilities(), now()->addDays(7))->plainTextToken;
-
-            return response()->json([
-                'message' => 'Cadastro social realizado com sucesso.',
-                'user' => new UserResource($newUser),
-                'token' => $token,
-            ], 201);
+            return $this->respondWithAuth($request, $newUser, 'Cadastro social realizado com sucesso.', 201);
         }
 
         // Cenário 2: Usuário já existe E e-mail foi verificado pelo provedor -> Vincula e autentica
         if ($isVerified) {
             if (! $existingUser->active) {
+                $msg = 'Esta conta está inativa. Entre em contato com o suporte.';
+                if (! $request->wantsJson()) {
+                    return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                }
                 return response()->json([
-                    'message' => 'Esta conta está inativa. Entre em contato com o suporte.',
+                    'message' => $msg,
                 ], 403);
             }
 
@@ -173,17 +193,15 @@ class AuthSocialController extends Controller
                 'provider_id' => $providerId,
             ]);
 
-            $token = $existingUser->createToken('social-token', $existingUser->tokenAbilities(), now()->addDays(7))->plainTextToken;
-
-            return response()->json([
-                'message' => 'Conta vinculada e login realizado com sucesso.',
-                'user' => new UserResource($existingUser),
-                'token' => $token,
-            ]);
+            return $this->respondWithAuth($request, $existingUser, 'Conta vinculada e login realizado com sucesso.', 200);
         }
 
         // Cenário 3: Usuário já existe, mas e-mail NÃO foi confirmado pelo provedor
         // [LIÇÃO ANTI ACCOUNT-TAKEOVER]: Bloqueia auto-vínculo para impedir sequestro de conta
+        if (! $request->wantsJson()) {
+            return redirect("{$frontUrl}/login?error=" . urlencode('Este e-mail já possui cadastro. Confirme sua senha para vincular a conta social.'));
+        }
+
         return response()->json([
             'message' => 'Este e-mail já possui cadastro. Como o e-mail não foi verificado pelo provedor, confirme sua senha para vincular a conta com segurança.',
             'requires_password_confirmation' => true,
@@ -191,6 +209,26 @@ class AuthSocialController extends Controller
             'provider' => $provider,
             'provider_id' => $providerId,
         ], 409);
+    }
+
+    /**
+     * Retorna a resposta de autenticação adequada para API ou SPA browser.
+     */
+    protected function respondWithAuth(Request $request, User $user, string $message, int $status = 200): JsonResponse|RedirectResponse
+    {
+        $token = $user->createToken('social-token', $user->tokenAbilities(), now()->addDays(7))->plainTextToken;
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $message,
+                'user' => new UserResource($user),
+                'token' => $token,
+            ], $status);
+        }
+
+        $frontUrl = config('app.front_url', env('FRONT_URL', 'http://localhost:5173'));
+        $userJson = urlencode(json_encode((new UserResource($user))->resolve()));
+        return redirect("{$frontUrl}/auth/callback?token={$token}&user={$userJson}");
     }
 
     /**

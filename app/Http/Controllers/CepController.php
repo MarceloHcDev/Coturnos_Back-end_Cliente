@@ -42,7 +42,11 @@ class CepController extends Controller
 
         // 3. Consulta à API externa do ViaCEP com timeout explícito
         try {
-            $response = Http::timeout(5)->get("https://viacep.com.br/ws/{$cleanCep}/json/");
+            $http = config('app.env') === 'production'
+                ? Http::timeout(5)
+                : Http::withoutVerifying()->timeout(5);
+
+            $response = $http->get("https://viacep.com.br/ws/{$cleanCep}/json/");
 
             if ($response->failed()) {
                 Log::warning('Falha na resposta do ViaCEP', [
