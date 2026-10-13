@@ -69,13 +69,9 @@ class SuperFreteService
             'weight' => number_format($pesoAjustado, 2, '.', ''),
         ];
 
-        // 3. Chamada à API SuperFrete com timeout explícito de 5s
+        // 3. Chamada à API SuperFrete com timeout explícito de 5s e SSL estrito
         try {
-            $http = config('app.env') === 'production'
-                ? Http::timeout(5)
-                : Http::withoutVerifying()->timeout(5);
-
-            $response = $http
+            $response = Http::timeout(5)
                 ->withToken($this->token)
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -104,7 +100,8 @@ class SuperFreteService
                     'cep_destino' => $cepDestino,
                 ]);
 
-                if (! app()->runningUnitTests() && (empty($this->token) || config('app.env') === 'local')) {
+                // Fallback SOMENTE se o desenvolvedor local não possuir token configurado no .env
+                if (! app()->runningUnitTests() && empty($this->token) && config('app.env') === 'local') {
                     return $this->estimativaFreteLocal($cepDestino, $quantidadeTotal);
                 }
 
@@ -122,7 +119,8 @@ class SuperFreteService
                 'cep_destino' => $cepDestino,
             ]);
 
-            if (! app()->runningUnitTests() && (empty($this->token) || config('app.env') === 'local')) {
+            // Fallback SOMENTE se o desenvolvedor local não possuir token configurado no .env
+            if (! app()->runningUnitTests() && empty($this->token) && config('app.env') === 'local') {
                 return $this->estimativaFreteLocal($cepDestino, $quantidadeTotal);
             }
 
