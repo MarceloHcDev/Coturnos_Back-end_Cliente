@@ -4,6 +4,23 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Chore & Limpeza Arquitetural] - 2026-10-13
+
+### 🧹 Remoção de Arquivos Legados, Configuração de CORS e Documentação do Front no .env
+
+Limpeza de código morto e alinhamento de infraestrutura para comunicação fluida entre o Front-End React (Vite) e o Back-End Laravel.
+
+- **Remoção de Arquivos Legados / Órfãos:**
+    - `app/Models/Pedido.php`: Removido. Apontava para tabela `pedidos` (inexistente). O módulo oficial de pagamentos/pedidos do Marcelo utiliza `Order.php`.
+    - `app/Http/Controllers/PagamentoController.php`: Removido. Código rascunho sem rotas ativas. Substituído por `OrderController.php` no módulo do Marcelo.
+- **Configuração de CORS (`config/cors.php`):**
+    - Habilitado `'supports_credentials' => true` para permitir tráfego de cookies de sessão, CSRF e cabeçalhos de autenticação vindos do React (`http://localhost:5173`).
+    - Limpeza de paths desnecessários, mantendo `api/*` e `sanctum/csrf-cookie`.
+- **Documentação de Ambiente (`.env.example`):**
+    - Adicionada a variável `FRONT_URL="http://localhost:5173"` para documentar a URL base do frontend SPA para o deploy do Ryan em produção.
+
+---
+
 ## [Segurança & Integração Front-End] - 2026-10-13
 
 ### 🛡️ Privacidade no Login Social, Validação SSL Estrita & Blindagem de Frete Local
