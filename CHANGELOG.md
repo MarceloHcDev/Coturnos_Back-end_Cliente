@@ -4,6 +4,21 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Segurança & Integração Front-End] - 2026-10-13
+
+### 🛡️ Privacidade no Login Social, Validação SSL Estrita & Blindagem de Frete Local
+
+Refatoração de segurança e alinhamento de privacidade com a LGPD após a integração das branches de Front-End e Back-End.
+
+- **Privacidade no Login Social (`app/Http/Controllers/AuthSocialController.php`):**
+    - **Remoção de Dados Pessoais da URL:** Eliminado o parâmetro `&user={$userJson}` da URL de redirecionamento no callback de autenticação social. Dados como nome, e-mail e ID não são mais expostos na query string do navegador (evitando vazamento em histórico, proxies e logs de requisição). O front-end agora recebe exclusivamente o token (`?token={$token}`) e consome os dados do usuário autenticado de forma segura via endpoint autenticado `GET /api/v1/auth/me`.
+- **Validação de Certificados SSL/TLS (`app/Http/Controllers/CepController.php` & `app/Services/SuperFreteService.php`):**
+    - **Remoção de `withoutVerifying()`:** Restaurada a checagem obrigatória de certificados SSL nas chamadas externas ao ViaCEP e à SuperFrete, prevenindo vulnerabilidades de interceptação de tráfego (*Man-in-the-Middle*).
+- **Blindagem do Fallback de Frete (`app/Services/SuperFreteService.php`):**
+    - **Proteção da Estimativa Local:** A contingência com frete mockado regional agora exige estritamente que o ambiente seja `local` **E** que o token da SuperFrete esteja totalmente ausente (`empty($this->token)`). Garante que a API oficial com preços reais seja sempre consultada em homologação, produção e ambientes locais com credenciais ativas.
+
+---
+
 ## [Semana 3 — Tarefa 3.1] - 2026-10-04
 
 ### 📦 SuperFrete Unificado por Carrinho & ViaCEP com Cache Inteligente (24h)
