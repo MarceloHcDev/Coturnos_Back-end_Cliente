@@ -227,8 +227,7 @@ class AuthSocialController extends Controller
         }
 
         $frontUrl = config('app.front_url', env('FRONT_URL', 'http://localhost:5173'));
-        $userJson = urlencode(json_encode((new UserResource($user))->resolve()));
-        return redirect("{$frontUrl}/auth/callback?token={$token}&user={$userJson}");
+        return redirect("{$frontUrl}/auth/callback?token={$token}");
     }
 
     /**
