@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,12 +21,30 @@ class UserResource extends JsonResource
             'last_name' => $this->last_name,
             'full_name' => $this->full_name,
             'email' => $this->email,
-            'cpf' => $this->cpf,
+            'cpf' => $this->maskCpf($this->cpf),
             'phone' => $this->phone,
             'birth_date' => $this->birth_date?->format('Y-m-d'),
-            'role' => $this->role instanceof \App\Enums\UserRole ? $this->role->value : $this->role,
+            'role' => $this->role instanceof UserRole ? $this->role->value : $this->role,
             'active' => (bool) $this->active,
             'created_at' => $this->created_at?->toISOString(),
         ];
+    }
+
+    /**
+     * Mascara o CPF conforme LGPD: ***.456.789-**
+     */
+    private function maskCpf(?string $cpf): ?string
+    {
+        if (! $cpf) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D/', '', $cpf);
+
+        if (strlen($digits) !== 11) {
+            return $cpf;
+        }
+
+        return '***.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-**';
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthSocialController;
 use App\Http\Controllers\CepController;
 use App\Http\Controllers\FreteController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -38,6 +39,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/{provider}/callback', [AuthSocialController::class, 'callback'])
             ->middleware('throttle:10,1');
         Route::post('/{provider}/confirm-link', [AuthSocialController::class, 'confirmLink'])
+            ->middleware('throttle:6,1');
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Perfil do Usuário (Semana 4 — Tarefa 4.3)
+    // ─────────────────────────────────────────────────────────────────────
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::put('/perfil', [ProfileController::class, 'update'])
+            ->middleware('throttle:15,1');
+        Route::put('/perfil/senha', [ProfileController::class, 'updatePassword'])
             ->middleware('throttle:6,1');
     });
 
