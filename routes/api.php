@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthSocialController;
 use App\Http\Controllers\CepController;
@@ -43,13 +44,23 @@ Route::prefix('v1')->group(function () {
     });
 
     // ─────────────────────────────────────────────────────────────────────
-    // Perfil do Usuário (Semana 4 — Tarefa 4.3)
+    // Perfil do Usuário e Endereços (Semana 4 — Tarefa 4.3)
     // ─────────────────────────────────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
         Route::put('/perfil', [ProfileController::class, 'update'])
             ->middleware('throttle:15,1');
         Route::put('/perfil/senha', [ProfileController::class, 'updatePassword'])
             ->middleware('throttle:6,1');
+
+        // CRUD de Endereços 100% Anti-IDOR (escopado no usuário autenticado)
+        Route::prefix('enderecos')->group(function () {
+            Route::get('/', [AddressController::class, 'index']);
+            Route::post('/', [AddressController::class, 'store']);
+            Route::get('/{id}', [AddressController::class, 'show']);
+            Route::put('/{id}', [AddressController::class, 'update']);
+            Route::delete('/{id}', [AddressController::class, 'destroy']);
+            Route::patch('/{id}/padrao', [AddressController::class, 'setDefault']);
+        });
     });
 
     // ─────────────────────────────────────────────────────────────────────
