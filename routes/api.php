@@ -1,23 +1,26 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthSocialController;
 use App\Http\Controllers\CepController;
 use App\Http\Controllers\FreteController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // ─────────────────────────────────────────────────────────────────────
     // Autenticação & Gestão de Acesso (Sanctum)
     // throttle:register → máx 10 tentativas/min por IP (Anti-DoS / Anti-bot)
-    // throttle:login    → máx 6 tentativas/min por IP (Anti-força-bruta)
-    // Ajuste fino (por IP+email, Redis) será feito na Semana 4 (Tarefa 4.3).
+    // throttle:login    → máx 5 tentativas/min por IP+e-mail (Anti-força-bruta)
+    //                     Definido em AppServiceProvider::configureRateLimiting()
     // ─────────────────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])
             ->middleware('throttle:10,1');
 
         Route::post('/login', [AuthController::class, 'login'])
-            ->middleware('throttle:6,1');
+            ->middleware('throttle:login');
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
@@ -31,13 +34,33 @@ Route::prefix('v1')->group(function () {
         // Login Social (Google, Facebook, Apple) — Socialite (Semana 2)
         // throttle:10,1 no callback (proteção contra abuso de autenticação)
         // ─────────────────────────────────────────────────────────────────
-        Route::get('/{provider}/redirect', [\App\Http\Controllers\AuthSocialController::class, 'redirect'])
+        Route::get('/{provider}/redirect', [AuthSocialController::class, 'redirect'])
             ->middleware('throttle:20,1');
 
-        Route::get('/{provider}/callback', [\App\Http\Controllers\AuthSocialController::class, 'callback'])
+        Route::get('/{provider}/callback', [AuthSocialController::class, 'callback'])
             ->middleware('throttle:10,1');
-        Route::post('/{provider}/confirm-link', [\App\Http\Controllers\AuthSocialController::class, 'confirmLink'])
+        Route::post('/{provider}/confirm-link', [AuthSocialController::class, 'confirmLink'])
             ->middleware('throttle:6,1');
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Perfil do Usuário e Endereços (Semana 4 — Tarefa 4.3)
+    // ─────────────────────────────────────────────────────────────────────
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::put('/perfil', [ProfileController::class, 'update'])
+            ->middleware('throttle:15,1');
+        Route::put('/perfil/senha', [ProfileController::class, 'updatePassword'])
+            ->middleware('throttle:6,1');
+
+        // CRUD de Endereços 100% Anti-IDOR (escopado no usuário autenticado)
+        Route::prefix('enderecos')->group(function () {
+            Route::get('/', [AddressController::class, 'index']);
+            Route::post('/', [AddressController::class, 'store']);
+            Route::get('/{id}', [AddressController::class, 'show']);
+            Route::put('/{id}', [AddressController::class, 'update']);
+            Route::delete('/{id}', [AddressController::class, 'destroy']);
+            Route::patch('/{id}/padrao', [AddressController::class, 'setDefault']);
+        });
     });
 
     // ─────────────────────────────────────────────────────────────────────

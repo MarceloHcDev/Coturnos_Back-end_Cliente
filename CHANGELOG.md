@@ -4,6 +4,46 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Semana 4 — Tarefa 4.3] - 2026-10-17
+
+### 🔒 Perfil Seguro, Gestão de Endereços Anti-IDOR, Rate Limiting & Conformidade LGPD
+
+Implementação completa dos requisitos de segurança da Semana 4 (Tarefa 4.3 do Plano Operacional), garantindo isolamento estrito de dados por cliente, proteção contra ataques de enumeração/IDOR, mitigação de força bruta no login e mascaramento de dados sensíveis.
+
+- **Rate Limiter Estrito no Login (`app/Providers/AppServiceProvider.php` & `bootstrap/app.php`):**
+    - **Chave Composta Anti-Fraude:** Configurado `RateLimiter::for('login')` utilizando chave composta `email|ip` (com e-mail normalizado em minúsculas). Evita evasão por rotação de IP e protege usuários legítimos sob mesmo NAT.
+    - **Teto Estrito:** Máximo de 5 tentativas por minuto. A 6ª tentativa retorna **HTTP 429 Too Many Requests**.
+    - **Tratamento Global de Exceção:** Interceptação no `bootstrap/app.php` retornando JSON em português com cabeçalho `Retry-After` preservado e tempo restante em segundos.
+- **Gestão de Perfil & Atualização Segura (`app/Http/Controllers/ProfileController.php`):**
+    - **Prevenção de Mass Assignment (`app/Http/Requests/UpdateProfileRequest.php`):** Rota `PUT /api/v1/perfil` restringe a atualização exclusivamente aos campos `first_name`, `last_name` e `phone` (com validação estrita de formato e DDD). Parâmetros sensíveis injetados (`role`, `active`, `email`, `cpf`) são sumariamente descartados.
+    - **Troca de Senha com Revogação de Sessões (`app/Http/Requests/UpdatePasswordRequest.php`):** Rota `PUT /api/v1/perfil/senha` exige validação da senha atual com `Hash::check()`, complexidade mínima (8 caracteres, maiúsculas, minúsculas e números) e bloqueia repetição de senha.
+    - **Isolamento de Sessão:** Após a troca de senha, todos os outros tokens Sanctum ativos do usuário são revogados no banco de dados (`$user->tokens()->where('id', '!=', $currentTokenId)->delete()`), mantendo apenas a sessão corrente autenticada.
+    - **Suporte a Usuários de Login Social:** Usuários cadastrados puramente via Google/Facebook/Apple com senha inicial nula podem definir sua primeira senha sem a exigência de `current_password`.
+- **CRUD de Endereços 100% Anti-IDOR (`app/Http/Controllers/AddressController.php`):**
+    - **Isolamento de Tenant / Relacionamento Autenticado:** Todas as operações (listar, criar, visualizar, editar, excluir e definir padrão) partem estritamente do relacionamento `$request->user()->addresses()`.
+    - **Prevenção de Enumeração de Recursos (404 em vez de 403):** Tentativas de acessar, editar ou excluir endereços pertencentes a outro cliente retornam `404 Not Found`, ocultando a existência do registro e impedindo ataques de IDOR (Insecure Direct Object References).
+    - **Rejeição de `user_id` Arbitrário:** Payloads contendo `user_id` ou `usuario_id` são ignorados; a associação é sempre forçada para o ID do usuário autenticado no token Bearer.
+    - **Compatibilidade Bilíngue no FormRequest (`StoreEnderecoRequest` & `UpdateEnderecoRequest`):** Suporte nativo tanto para nomenclatura do front-end (`zip`, `street`, `number`, `complement`, `neighborhood`, `city`, `state`, `isPrimary`) quanto tradicional (`cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `padrao`). Sanitização automática de CEP para 8 dígitos numéricos e UF para 2 caracteres maiúsculos.
+    - **Transações Atômicas & Exclusividade do Padrão:** A alternância de endereço padrão opera sob `DB::transaction()`. O primeiro endereço criado é marcado como padrão automaticamente; ao eleger um novo padrão, todos os demais são desmarcados pelo evento do model.
+    - **Soft Delete Fiscal (`deleted_at`):** A exclusão de endereços utiliza Soft Delete, preservando a integridade histórica de pedidos e notas fiscais já emitidas. Se o endereço excluído for o padrão, o endereço ativo mais recente é promovido automaticamente.
+    - **Camada de Autorização (`app/Policies/AddressPolicy.php`):** Segunda barreira de defesa validando a posse do registro (`$user->id === $address->user_id`).
+- **Privacidade & Conformidade LGPD (`app/Http/Resources/UserResource.php`):**
+    - **Mascaramento de CPF:** O campo `cpf` retornado para o front-end é automaticamente mascarado no formato `***.456.789-**`, eliminando a exposição de dados sensíveis na camada de apresentação e no tráfego de rede.
+- **Rotas Registradas (`routes/api.php`):**
+    - `PUT /api/v1/perfil` (protegido por `auth:sanctum` + `throttle:15,1`)
+    - `PUT /api/v1/perfil/senha` (protegido por `auth:sanctum` + `throttle:6,1`)
+    - `GET /api/v1/enderecos` (protegido por `auth:sanctum`)
+    - `POST /api/v1/enderecos` (protegido por `auth:sanctum`)
+    - `GET /api/v1/enderecos/{id}` (protegido por `auth:sanctum`)
+    - `PUT /api/v1/enderecos/{id}` (protegido por `auth:sanctum`)
+    - `DELETE /api/v1/enderecos/{id}` (protegido por `auth:sanctum`)
+    - `PATCH /api/v1/enderecos/{id}/padrao` (protegido por `auth:sanctum`)
+- **Cobertura de Testes Automatizados (Pest / PHPUnit):**
+    - Criados `tests/Feature/LoginRateLimitTest.php` (4 testes), `tests/Feature/ProfileTest.php` (9 testes) e `tests/Feature/AddressIdorTest.php` (10 testes).
+    - Suíte de testes da aplicação elevada para **78 testes (304 assertions)**, com 100% de aprovação e código validado pelo Laravel Pint (PSR-12).
+
+---
+
 ## [Chore & Limpeza Arquitetural] - 2026-10-13
 
 ### 🧹 Remoção de Arquivos Legados, Configuração de CORS e Documentação do Front no .env
