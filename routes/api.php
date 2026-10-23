@@ -4,7 +4,10 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthSocialController;
 use App\Http\Controllers\CepController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FreteController;
+use App\Http\Controllers\MercadoPagoWebhookController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +64,18 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [AddressController::class, 'destroy']);
             Route::patch('/{id}/padrao', [AddressController::class, 'setDefault']);
         });
+
+        // ─────────────────────────────────────────────────────────────────
+        // Pedidos & Checkout (Marcelo Rezende)
+        // ─────────────────────────────────────────────────────────────────
+        Route::prefix('pedidos')->group(function () {
+            Route::get('/', [OrderController::class, 'index']);
+            Route::post('/', [OrderController::class, 'store']);
+            Route::get('/{id}', [OrderController::class, 'show']);
+        });
+
+        Route::post('/checkout/preferencia', [CheckoutController::class, 'preferencia'])
+            ->middleware('throttle:30,1');
     });
 
     // ─────────────────────────────────────────────────────────────────────
@@ -72,4 +87,12 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/frete', [FreteController::class, 'calcular'])
         ->middleware('throttle:30,1');
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Webhook Mercado Pago (Autenticado via HMAC-SHA256 no header x-signature)
+    // ─────────────────────────────────────────────────────────────────────
+    Route::post('/webhooks/mercadopago', [MercadoPagoWebhookController::class, 'handle']);
 });
+
+// Alias na raiz /api/webhooks/mercadopago caso o Mercado Pago configure sem prefixo v1
+Route::post('/webhooks/mercadopago', [MercadoPagoWebhookController::class, 'handle']);

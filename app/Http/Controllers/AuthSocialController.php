@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Resources\UserResource;
 use App\Models\SocialAccount;
 use App\Models\User;
+use GuzzleHttp\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
 
 class AuthSocialController extends Controller
 {
@@ -46,7 +49,7 @@ class AuthSocialController extends Controller
     {
         $this->validateProvider($provider);
 
-        /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+        /** @var AbstractProvider $driver */
         $driver = Socialite::driver($provider)->stateless();
 
         if ($request->wantsJson()) {
@@ -78,24 +81,25 @@ class AuthSocialController extends Controller
         $frontUrl = config('app.front_url', env('FRONT_URL', 'http://localhost:5173'));
 
         try {
-            /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+            /** @var AbstractProvider $driver */
             $driver = Socialite::driver($provider)->stateless();
 
             if (! app()->runningUnitTests() && config('app.env') !== 'production' && method_exists($driver, 'setHttpClient')) {
-                $driver->setHttpClient(new \GuzzleHttp\Client(['verify' => false]));
+                $driver->setHttpClient(new Client(['verify' => false]));
             }
 
             /** @var \Laravel\Socialite\Contracts\User $socialUser */
             $socialUser = $driver->user();
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Erro no callback social ' . $provider, [
+            Log::error('Erro no callback social '.$provider, [
                 'error' => $e->getMessage(),
             ]);
 
-            $msg = 'Falha ao autenticar com ' . ucfirst($provider) . (config('app.debug') ? ': ' . $e->getMessage() : '.');
+            $msg = 'Falha ao autenticar com '.ucfirst($provider).(config('app.debug') ? ': '.$e->getMessage() : '.');
             if (! $request->wantsJson()) {
-                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                return redirect("{$frontUrl}/auth/callback?error=".urlencode($msg));
             }
+
             return response()->json([
                 'message' => $msg,
                 'error' => config('app.debug') ? $e->getMessage() : null,
@@ -108,8 +112,9 @@ class AuthSocialController extends Controller
         if (empty($email)) {
             $msg = 'Não foi possível obter um e-mail válido da conta social.';
             if (! $request->wantsJson()) {
-                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                return redirect("{$frontUrl}/auth/callback?error=".urlencode($msg));
             }
+
             return response()->json([
                 'message' => $msg,
             ], 422);
@@ -119,8 +124,9 @@ class AuthSocialController extends Controller
         if (! $this->isEmailAllowed($email)) {
             $msg = 'Acesso social restrito em ambiente de homologação. E-mail não autorizado para testes.';
             if (! $request->wantsJson()) {
-                return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                return redirect("{$frontUrl}/auth/callback?error=".urlencode($msg));
             }
+
             return response()->json([
                 'message' => $msg,
             ], 403);
@@ -135,8 +141,9 @@ class AuthSocialController extends Controller
             if (! $user || ! $user->active) {
                 $msg = 'Esta conta está inativa. Entre em contato com o suporte.';
                 if (! $request->wantsJson()) {
-                    return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                    return redirect("{$frontUrl}/auth/callback?error=".urlencode($msg));
                 }
+
                 return response()->json([
                     'message' => $msg,
                 ], 403);
@@ -180,8 +187,9 @@ class AuthSocialController extends Controller
             if (! $existingUser->active) {
                 $msg = 'Esta conta está inativa. Entre em contato com o suporte.';
                 if (! $request->wantsJson()) {
-                    return redirect("{$frontUrl}/auth/callback?error=" . urlencode($msg));
+                    return redirect("{$frontUrl}/auth/callback?error=".urlencode($msg));
                 }
+
                 return response()->json([
                     'message' => $msg,
                 ], 403);
@@ -199,7 +207,7 @@ class AuthSocialController extends Controller
         // Cenário 3: Usuário já existe, mas e-mail NÃO foi confirmado pelo provedor
         // [LIÇÃO ANTI ACCOUNT-TAKEOVER]: Bloqueia auto-vínculo para impedir sequestro de conta
         if (! $request->wantsJson()) {
-            return redirect("{$frontUrl}/login?error=" . urlencode('Este e-mail já possui cadastro. Confirme sua senha para vincular a conta social.'));
+            return redirect("{$frontUrl}/login?error=".urlencode('Este e-mail já possui cadastro. Confirme sua senha para vincular a conta social.'));
         }
 
         return response()->json([
@@ -227,6 +235,7 @@ class AuthSocialController extends Controller
         }
 
         $frontUrl = config('app.front_url', env('FRONT_URL', 'http://localhost:5173'));
+
         return redirect("{$frontUrl}/auth/callback?token={$token}");
     }
 

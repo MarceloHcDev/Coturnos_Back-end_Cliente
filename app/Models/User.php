@@ -172,6 +172,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relacionamento 1:N com pedidos do usuário.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
      * Retorna as abilities do token Sanctum com base no role do usuário.
      *
      * @return array<int, string>

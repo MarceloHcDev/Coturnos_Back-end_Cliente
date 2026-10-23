@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FreteRequest extends FormRequest
@@ -33,7 +34,7 @@ class FreteRequest extends FormRequest
      * - Quantidade possui limite superior (max: 50) para impedir cálculo abusivo e DoS.
      * - Peso e dimensões NUNCA são aceitos nesta validação; eles são buscados do banco de dados.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
@@ -27,7 +28,7 @@ class ProductSeeder extends Seeder
                 ['id' => $id],
                 [
                     'name' => $nome,
-                    'slug' => \Illuminate\Support\Str::slug($nome),
+                    'slug' => Str::slug($nome),
                     'product_type' => 'coturno',
                     'brand' => 'tacforce',
                     'description' => 'Coturno militar profissional de alta performance e durabilidade.',

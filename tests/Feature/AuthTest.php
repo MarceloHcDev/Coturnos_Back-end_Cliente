@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\SocialAccount;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -183,7 +185,6 @@ class AuthTest extends TestCase
         $this->assertCount(0, $user->tokens()->get());
     }
 
-
     public function test_user_can_update_profile_data_without_blocking(): void
     {
         $user = User::create([
@@ -287,8 +288,8 @@ class AuthTest extends TestCase
             'password' => 'SenhaForte123!',
         ]);
 
-        $this->assertInstanceOf(\App\Enums\UserRole::class, $customer->role);
-        $this->assertEquals(\App\Enums\UserRole::CUSTOMER, $customer->role);
+        $this->assertInstanceOf(UserRole::class, $customer->role);
+        $this->assertEquals(UserRole::CUSTOMER, $customer->role);
         $this->assertTrue($customer->isCustomer());
         $this->assertFalse($customer->isAdmin());
 
@@ -301,11 +302,11 @@ class AuthTest extends TestCase
             'phone' => '(11) 98888-7777',
             'password' => 'SenhaForte123!',
         ]);
-        $admin->role = \App\Enums\UserRole::ADMIN;
+        $admin->role = UserRole::ADMIN;
         $admin->save();
 
-        $this->assertInstanceOf(\App\Enums\UserRole::class, $admin->role);
-        $this->assertEquals(\App\Enums\UserRole::ADMIN, $admin->role);
+        $this->assertInstanceOf(UserRole::class, $admin->role);
+        $this->assertEquals(UserRole::ADMIN, $admin->role);
         $this->assertTrue($admin->isAdmin());
         $this->assertFalse($admin->isCustomer());
     }
@@ -452,7 +453,7 @@ class AuthTest extends TestCase
         ]);
 
         // 2. Tentar vincular o MESMO provider_id do Google ao Usuario 2 DEVE falhar por constraint única
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         $user2->socialAccounts()->create([
             'provider_name' => 'google',
@@ -477,13 +478,13 @@ class AuthTest extends TestCase
         ]);
 
         // Busca existente
-        $found = \App\Models\SocialAccount::findByProvider('google', 'google-uid-999');
+        $found = SocialAccount::findByProvider('google', 'google-uid-999');
         $this->assertNotNull($found);
         $this->assertEquals($user->id, $found->user_id);
         $this->assertEquals('ana@coturnos.com', $found->user->email);
 
         // Busca inexistente
-        $notFound = \App\Models\SocialAccount::findByProvider('google', 'nao-existe');
+        $notFound = SocialAccount::findByProvider('google', 'nao-existe');
         $this->assertNull($notFound);
     }
 
@@ -499,7 +500,7 @@ class AuthTest extends TestCase
             'password' => 'SenhaForte123!',
             'password_confirmation' => 'SenhaForte123!',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['cpf']);
+            ->assertJsonValidationErrors(['cpf']);
 
         // 2. CPF com dígitos verificadores matematicamente errados
         $this->postJson('/api/v1/auth/register', [
@@ -511,7 +512,7 @@ class AuthTest extends TestCase
             'password' => 'SenhaForte123!',
             'password_confirmation' => 'SenhaForte123!',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['cpf']);
+            ->assertJsonValidationErrors(['cpf']);
     }
 
     public function test_registration_normalizes_email_to_lowercase(): void
@@ -542,7 +543,7 @@ class AuthTest extends TestCase
             'password' => 'SenhaForte123!',
             'password_confirmation' => 'SenhaForte123!',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['phone']);
+            ->assertJsonValidationErrors(['phone']);
     }
 
     public function test_registration_fails_with_future_birth_date(): void
@@ -557,7 +558,7 @@ class AuthTest extends TestCase
             'password' => 'SenhaForte123!',
             'password_confirmation' => 'SenhaForte123!',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['birth_date']);
+            ->assertJsonValidationErrors(['birth_date']);
     }
 
     public function test_registration_fails_with_weak_or_oversized_password(): void
@@ -572,7 +573,7 @@ class AuthTest extends TestCase
             'password' => 'apenasletrasminusculas',
             'password_confirmation' => 'apenasletrasminusculas',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['password']);
+            ->assertJsonValidationErrors(['password']);
 
         // 2. Senha gigante (vetor DoS > 128 chars)
         $this->postJson('/api/v1/auth/register', [
@@ -584,7 +585,7 @@ class AuthTest extends TestCase
             'password' => str_repeat('Aa!', 45), // 135 chars
             'password_confirmation' => str_repeat('Aa!', 45),
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['password']);
+            ->assertJsonValidationErrors(['password']);
     }
 
     public function test_user_can_register_with_frontend_payload_shape_and_address(): void
@@ -636,8 +637,8 @@ class AuthTest extends TestCase
             'birthdate' => now()->subYears(15)->format('d/m/Y'),
             'password' => 'Senha@Forte',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['birth_date'])
-          ->assertJsonFragment(['É necessário ter pelo menos 16 anos para se cadastrar.']);
+            ->assertJsonValidationErrors(['birth_date'])
+            ->assertJsonFragment(['É necessário ter pelo menos 16 anos para se cadastrar.']);
     }
 
     public function test_registration_fails_with_age_more_than_110(): void
@@ -650,8 +651,8 @@ class AuthTest extends TestCase
             'birthdate' => now()->subYears(115)->format('d/m/Y'),
             'password' => 'Senha@Forte',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['birth_date'])
-          ->assertJsonFragment(['A data de nascimento informada é inválida.']);
+            ->assertJsonValidationErrors(['birth_date'])
+            ->assertJsonFragment(['A data de nascimento informada é inválida.']);
     }
 
     public function test_user_can_login_with_uppercase_email_due_to_normalization(): void
@@ -678,16 +679,16 @@ class AuthTest extends TestCase
     {
         // 1. Email maior que 191 caracteres
         $this->postJson('/api/v1/auth/login', [
-            'email' => str_repeat('a', 185) . '@coturnos.com', // > 191 chars
+            'email' => str_repeat('a', 185).'@coturnos.com', // > 191 chars
             'password' => 'SenhaForte123!',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors(['email']);
 
         // 2. Senha gigante (> 128 chars)
         $this->postJson('/api/v1/auth/login', [
             'email' => 'carlos@coturnos.com',
             'password' => str_repeat('x', 130),
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['password']);
+            ->assertJsonValidationErrors(['password']);
     }
 }
