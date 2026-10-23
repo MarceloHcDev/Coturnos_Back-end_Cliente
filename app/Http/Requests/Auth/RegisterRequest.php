@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use App\Models\User;
 use App\Rules\Cpf;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -65,22 +66,22 @@ class RegisterRequest extends FormRequest
     /**
      * Regras de validação para registro de novos clientes.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             'first_name' => ['required', 'string', 'max:60'],
             'last_name' => ['nullable', 'string', 'max:60'],
-            'cpf' => ['required', 'string', new Cpf()],
+            'cpf' => ['required', 'string', new Cpf],
             'cpf_hash' => ['nullable', 'string', 'unique:users,cpf_hash'],
             'email' => ['required', 'string', 'email', 'max:191', 'unique:users,email'],
             'phone' => ['required', 'string', 'regex:/^\(?\d{2}\)?[\s-]?\d{4,5}[-\s]?\d{4}$/'],
             'birth_date' => [
                 'nullable',
                 'date',
-                'before_or_equal:' . now()->subYears(16)->format('Y-m-d'),
-                'after_or_equal:' . now()->subYears(110)->format('Y-m-d'),
+                'before_or_equal:'.now()->subYears(16)->format('Y-m-d'),
+                'after_or_equal:'.now()->subYears(110)->format('Y-m-d'),
             ],
             'password' => [
                 'required',

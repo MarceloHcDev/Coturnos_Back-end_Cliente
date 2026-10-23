@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Log;
 class SuperFreteService
 {
     protected string $baseUrl;
+
     protected ?string $token;
+
     protected string $fromPostalCode;
 
     public function __construct()
@@ -48,7 +50,7 @@ class SuperFreteService
         }
 
         // Dimensões padrão do CoturnoEmbalado (1.5kg, 14cm x 22cm x 35cm)
-        $coturno = new CoturnoEmbalado();
+        $coturno = new CoturnoEmbalado;
         $pesoUnitario = (float) $coturno->peso;
         $alturaUnitaria = (float) $coturno->altura;
         $largura = (float) $coturno->largura;
@@ -136,8 +138,8 @@ class SuperFreteService
     protected function estimativaFreteLocal(string $cepDestino, int $quantidadeTotal): array
     {
         $prefixo = substr(preg_replace('/\D/', '', $cepDestino), 0, 2);
-        $isSP = in_array($prefixo, ['01','02','03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19'], true);
-        $isSudeste = $isSP || in_array($prefixo, ['20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39'], true);
+        $isSP = in_array($prefixo, ['01', '02', '03', '04', '05', '06', '07', '08', '09', '11', '12', '13', '14', '15', '16', '17', '18', '19'], true);
+        $isSudeste = $isSP || in_array($prefixo, ['20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39'], true);
 
         $basePAC = $isSP ? 21.90 : ($isSudeste ? 28.50 : 36.90);
         $baseSEDEX = $isSP ? 32.50 : ($isSudeste ? 46.90 : 64.90);
@@ -146,14 +148,14 @@ class SuperFreteService
         return [
             [
                 'servico' => 'PAC',
-                'codigo' => '04669',
+                'codigo' => '1',
                 'valor' => round($basePAC + $adicional, 2),
                 'prazo_dias' => $isSP ? 5 : ($isSudeste ? 7 : 11),
                 'disponivel' => true,
             ],
             [
                 'servico' => 'SEDEX',
-                'codigo' => '04162',
+                'codigo' => '2',
                 'valor' => round($baseSEDEX + $adicional, 2),
                 'prazo_dias' => $isSP ? 2 : ($isSudeste ? 3 : 5),
                 'disponivel' => true,

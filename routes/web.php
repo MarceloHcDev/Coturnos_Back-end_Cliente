@@ -6,6 +6,6 @@ Route::get('/', function () {
     return response()->json([
         'app' => 'Coturnos & Cia API',
         'status' => 'online',
-        'version' => '1.0'
+        'version' => '1.0',
     ]);
 });

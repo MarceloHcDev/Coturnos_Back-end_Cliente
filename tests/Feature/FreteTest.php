@@ -12,6 +12,7 @@ class FreteTest extends TestCase
     use RefreshDatabase;
 
     protected Product $produto1;
+
     protected Product $produto2;
 
     protected function setUp(): void
@@ -218,7 +219,6 @@ class FreteTest extends TestCase
 
         $this->assertEquals(0.0, (float) $response->json('frete.1.valor'));
     }
-
 
     public function test_returns_503_when_superfrete_fails_without_leaking_credentials(): void
     {

@@ -4,6 +4,42 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Integração Mercado Pago & Pedidos] - 2026-10-18
+
+### 💳 Pedidos, Checkout Pro Mercado Pago & Webhooks Seguros com HMAC
+
+Integração cirúrgica das funcionalidades de pedidos e pagamento desenvolvidas por Marcelo Rezende (`origin/marcelo_ajustes`), harmonizadas com a arquitetura robusta e políticas de segurança da `main` (Semanas 1 a 4).
+
+- **Gestão de Pedidos & Anti-IDOR (`app/Http/Controllers/OrderController.php` & `app/Http/Requests/StoreOrderRequest.php`):**
+    - **Proteção Anti-IDOR no Endereço:** O endereço de entrega do pedido é obtido estritamente através do relacionamento do cliente autenticado (`$request->user()->addresses()->findOrFail($data['address_id'])`), impedindo a criação de pedidos para endereços de terceiros.
+    - **Imutabilidade de Preços pelo Cliente:** Os preços unitários dos coturnos nunca são aceitos a partir do payload do frontend; são obtidos diretamente da base de dados com `Product::lockForUpdate()` em transação atômica (`DB::transaction`).
+    - **Cálculo de Frete Dinâmico:** Conexão direta com o `SuperFreteService` agregado, validando as opções de serviço (PAC e SEDEX) e persistindo custos reais de transporte.
+    - **Listagem e Consulta Anti-IDOR:** Rotas `GET /api/v1/pedidos` e `GET /api/v1/pedidos/{id}` escopadas ao usuário autenticado.
+- **Checkout Pro & Preferências do Mercado Pago (`app/Http/Controllers/CheckoutController.php` & `app/Services/MercadoPagoService.php`):**
+    - **Geração de Preferência de Pagamento:** Rota `POST /api/v1/checkout/preferencia` gera a preferência oficial no Mercado Pago com decomposição detalhada (subtotal, frete, desconto e `external_reference` mapeado para o `order_number`).
+    - **Persistência de Pagamentos (`app/Models/Payment.php`):** Armazena `preference_id`, `init_point`, valor total e status pendente, reutilizando preferências anteriores via `updateOrCreate` para evitar transações órfãs.
+- **Webhooks Seguros com Validação Criptográfica HMAC (`app/Http/Controllers/MercadoPagoWebhookController.php`):**
+    - **Validação HMAC-SHA256:** Validação estrita do cabeçalho `x-signature` (`ts` e `v1`) usando `hash_hmac` e comparação com mitigação de timing attack via `hash_equals`.
+    - **Tratamento de Query String PHP:** Normalização resiliente para captura de `data.id` contornando a conversão nativa do PHP de pontos para sublinhados em `$_GET`.
+    - **Transição Atômica de Status:** Concorrência controlada via `lockForUpdate()` no Pedido e Pagamento, atualizando o pedido para `paid` mediante status `approved`, ou `cancelled` para `rejected`/`cancelled`.
+- **Rotina de Expiração de Pedidos (`app/Console/Commands/CancelExpiredOrders.php` & `routes/console.php`):**
+    - Comando agendado a cada 10 minutos para cancelar automaticamente pedidos com status `pending` há mais de 30 minutos sem pagamento confirmado.
+- **Modelos e Relacionamentos Eloquent:**
+    - `app/Models/Order.php`: Relacionamentos corrigidos (`belongsTo(Address::class)`, `orderItems()`), geração automática de `order_number` e casts monetários `decimal:2`.
+    - `app/Models/OrderItem.php`: Relacionamento com `Order` e `Product`.
+    - `app/Models/Payment.php`: Relacionamento com `Order` e payload do gateway.
+    - `app/Models/User.php`: Relacionamento `orders(): HasMany`.
+    - `app/Models/Product.php`: Relacionamento `orderItems(): HasMany` e colunas opcionais de dimensões físicas.
+- **Documentação de Contrato Frontend (`checkout-preferencia-contrato.md`):**
+    - Especificação completa para integração do front-end com payloads de exemplo e respostas HTTP (201, 401, 404, 422, 502).
+- **Cobertura de Testes (11 novos testes automatizados):**
+    - `tests/Feature/OrderCheckoutTest.php` (6 testes: criação de pedido, Anti-IDOR de endereço, listagem, visualização, preferência e Anti-IDOR de checkout).
+    - `tests/Feature/MercadoPagoWebhookTest.php` (4 testes: rejeição de assinatura inválida, eventos ignorados, aprovação com transição de status e rejeição).
+    - `tests/Feature/CancelExpiredOrdersTest.php` (1 teste: cancelamento e preservação de pedidos recentes).
+    - **Suíte Total:** 89 testes passando (345 assertions).
+
+---
+
 ## [Semana 4 — Tarefa 4.3] - 2026-10-17
 
 ### 🔒 Perfil Seguro, Gestão de Endereços Anti-IDOR, Rate Limiting & Conformidade LGPD

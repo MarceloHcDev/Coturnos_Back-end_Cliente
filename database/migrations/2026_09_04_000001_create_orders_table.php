@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('address_id')->nullable()->constrained('addresses')->onDelete('set null');
             $table->enum('status', [
                 'pending', 'paid', 'preparing', 'shipped', 'delivered', 'cancelled',
-                'pendente', 'pago', 'em_separacao', 'enviado', 'entregue', 'cancelado'
+                'pendente', 'pago', 'em_separacao', 'enviado', 'entregue', 'cancelado',
             ])->default('pending');
             $table->decimal('subtotal', 10, 2);
             $table->decimal('shipping_fee', 10, 2)->default(0.00);

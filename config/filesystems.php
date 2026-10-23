@@ -28,7 +28,7 @@ return [
     |
     */
 
-        'disks' => [
+    'disks' => [
 
         'cloudinary' => [
             'driver' => 'cloudinary',

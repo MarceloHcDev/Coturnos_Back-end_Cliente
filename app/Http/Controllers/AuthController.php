@@ -35,14 +35,14 @@ class AuthController extends Controller
 
         if ($request->filled('zip') || $request->filled('street')) {
             $user->addresses()->create([
-                'zip_code'     => preg_replace('/\D/', '', (string) ($request->validated('zip') ?? '')),
-                'street'       => (string) ($request->validated('street') ?? ''),
-                'number'       => (string) ($request->validated('number') ?? ''),
-                'complement'   => $request->validated('complement'),
+                'zip_code' => preg_replace('/\D/', '', (string) ($request->validated('zip') ?? '')),
+                'street' => (string) ($request->validated('street') ?? ''),
+                'number' => (string) ($request->validated('number') ?? ''),
+                'complement' => $request->validated('complement'),
                 'neighborhood' => (string) ($request->validated('neighborhood') ?? ''),
-                'city'         => (string) ($request->validated('city') ?? ''),
-                'state'        => (string) ($request->validated('state') ?? ''),
-                'is_default'   => true,
+                'city' => (string) ($request->validated('city') ?? ''),
+                'state' => (string) ($request->validated('state') ?? ''),
+                'is_default' => true,
             ]);
         }
 

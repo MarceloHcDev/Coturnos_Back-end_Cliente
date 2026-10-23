@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use Tests\TestCase;
@@ -30,7 +32,6 @@ class SocialAuthTest extends TestCase
         parent::tearDown();
     }
 
-
     /**
      * Helper para mockar o retorno do Laravel Socialite com segurança.
      */
@@ -50,7 +51,7 @@ class SocialAuthTest extends TestCase
             'verified_email' => $verified,
         ]);
 
-        $providerMock = Mockery::mock(\Laravel\Socialite\Two\AbstractProvider::class);
+        $providerMock = Mockery::mock(AbstractProvider::class);
         $providerMock->shouldReceive('stateless')->andReturnSelf();
         $providerMock->shouldReceive('user')->andReturn($socialUser);
 
@@ -148,7 +149,7 @@ class SocialAuthTest extends TestCase
         ]);
 
         // Tentar vincular o mesmo provider_id ao usuário 2 DEVE falhar pela constraint única
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         $user2->socialAccounts()->create([
             'provider_name' => 'google',

@@ -4,13 +4,14 @@ namespace App\Rules;
 
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Translation\PotentiallyTranslatedString;
 
 class Cpf implements ValidationRule
 {
     /**
      * Valida o formato e o dígito verificador do CPF segundo o algoritmo oficial da Receita Federal.
      *
-     * @param  \Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
+     * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -18,12 +19,14 @@ class Cpf implements ValidationRule
 
         if (strlen($cpf) !== 11) {
             $fail('O CPF informado deve conter 11 dígitos.');
+
             return;
         }
 
         // Rejeita sequências de dígitos idênticos (ex: 111.111.111-11, 000.000.000-00)
         if (preg_match('/^(\d)\1{10}$/', $cpf)) {
             $fail('O CPF informado é inválido.');
+
             return;
         }
 
@@ -37,6 +40,7 @@ class Cpf implements ValidationRule
 
             if ((int) $cpf[$t] !== $d) {
                 $fail('O CPF informado é inválido.');
+
                 return;
             }
         }
