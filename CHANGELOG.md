@@ -4,6 +4,35 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Infraestrutura Docker & Schema Unificado] - 2026-11-03
+
+### 🐳 Orquestração Docker Multi-Serviços & Sincronização do Schema Oficial
+
+Implementação da infraestrutura completa em contêineres Docker (MySQL 8.0, Redis, Mailpit, Back-end Cliente e Back-end Admin) e unificação das migrations do banco de dados relacional.
+
+- **Infraestrutura Docker Centralizada (`coturnos-infra`):**
+    - **Orquestração Multi-Serviços (`docker-compose.yml`):** Implantação de ambiente local isolado na rede `coturnos_network` com MySQL 8.0 (porta 3306), Redis Alpine (porta 6379), Mailpit (porta 8025/1025), Back-end Cliente (porta 8000) e Back-end Admin (porta 8001).
+    - **Ambiente PHP 8.4 Autônomo (`Dockerfile` & `docker-entrypoint.sh`):** Configuração de container PHP 8.4 CLI com extensões essenciais (`pdo_mysql`, `redis`, `gd`, `zip`, `bcmath`, `mbstring`) e bootstrap automatizado do Composer para instalação de dependências sem necessidade de PHP no host.
+    - **Automação & Resiliência (`setup.sh` & `backup_db.sh`):** Script de inicialização em 1 comando com checagem de variáveis de ambiente (`.env`), geração de `APP_KEY`, sanitização preventiva de portas e script automatizado de dump diário do MySQL.
+- **Sincronização & Calibragem das Migrations (21 Migrations Oficiais):**
+    - **Remoção de Tabelas Mortas de Carrinho:** Exclusão definitiva de `carts` e `cart_items` em prol do estado no `localStorage` do front-end.
+    - **Conformidade LGPD & Otimização em `users`:**
+        - Campos sensíveis `cpf` e `phone` expandidos para `VARCHAR(512)` para acomodar com segurança o payload cifrado em AES-256.
+        - Data de nascimento (`birth_date`) mantida como `DATE` nativa do MySQL (sem criptografia excessiva), preservando filtros de data, relatórios de aniversariantes e validação de maioridade.
+        - Adicionado suporte a `SoftDeletes` (`deleted_at`) no model `User`.
+    - **Congelamento Histórico de Endereço em `orders`:**
+        - Adicionadas colunas `shipping_*` (`shipping_zip_code`, `shipping_street`, `shipping_number`, etc.) para congelar o endereço de entrega no ato da compra, blindando o histórico contra edições futuras no perfil do cliente.
+        - Status do pedido padronizado estritamente em inglês (`['pending', 'paid', 'preparing', 'shipped', 'delivered', 'cancelled']`), com accessor virtual `$order->status_label` fornecendo rótulos amigáveis em português (`"Pago"`, `"Pendente"`) para a camada visual do front-end.
+    - **Expansão de Dados de Pagamento em `payments`:**
+        - Mapeados campos `card_last_four`, `card_brand` e `paid_at` preenchidos automaticamente pelo Webhook do Mercado Pago para exibição segura sem requisições adicionais à API do gateway.
+    - **Integração dos Módulos do Admin:**
+        - Inclusão das migrations do painel administrativo: `banners`, `product_prices`, `product_promotions`, `collection_images`, `packed_products` e `order_history`.
+- **Seeders & Validação no MySQL 8.0:**
+    - Atualizados `UserFactory.php` e `DatabaseSeeder.php` para compatibilidade com as colunas `first_name` e `last_name`.
+    - Execução do comando `php artisan migrate:fresh --seed` no container Docker com 100% de êxito em todas as 21 migrations e povoamento do catálogo com 10 coturnos iniciais.
+
+---
+
 ## [Sprint_13-10 — Etapa 1] - 2026-10-29
 
 ### 🧹 Saneamento de Banco & Contrato de Recuperação de Senha (OWASP A07)
