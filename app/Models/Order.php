@@ -19,6 +19,13 @@ class Order extends Model
         'order_number',
         'user_id',
         'address_id',
+        'shipping_zip_code',
+        'shipping_street',
+        'shipping_number',
+        'shipping_complement',
+        'shipping_neighborhood',
+        'shipping_city',
+        'shipping_state',
         'status',
         'subtotal',
         'shipping_fee',
@@ -27,6 +34,21 @@ class Order extends Model
         'shipping_method',
         'tracking_code',
     ];
+
+    protected $appends = ['status_label'];
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'pending' => 'Pendente',
+            'paid' => 'Pago',
+            'preparing' => 'Em Separação',
+            'shipped' => 'Enviado',
+            'delivered' => 'Entregue',
+            'cancelled' => 'Cancelado',
+            default => (string) $this->status,
+        };
+    }
 
     protected function casts(): array
     {

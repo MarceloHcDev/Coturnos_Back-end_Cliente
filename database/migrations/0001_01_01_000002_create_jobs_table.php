@@ -1,14 +1,12 @@
 <?php
 
 /**
- * ============================================================================
- * INFRAESTRUTURA LARAVEL (TEMPORÁRIO - BANCO DE DADOS LOCAL)
- * ============================================================================
- * Esta migration atende ao driver local de Filas (QUEUE_CONNECTION=database)
- * para processamento em background (e-mails, webhooks) no ambiente de dev.
- * Na Semana 3 da Sprint, com o container Redis ativo no Docker Sail pelo Ryan,
- * as filas migrarão para memória (QUEUE_CONNECTION=redis).
- * ============================================================================
+ * INFRAESTRUTURA LARAVEL (filas em banco).
+ * Usada enquanto QUEUE_CONNECTION=database (e-mails, webhooks). Com o Redis ativo,
+ * as filas migram para QUEUE_CONNECTION=redis.
+ *
+ * Atenção: payload/exception de jobs podem conter dados pessoais serializados.
+ * Não coloque CPF/telefone em texto claro dentro de jobs; passe só o ID.
  */
 
 use Illuminate\Database\Migrations\Migration;
@@ -17,9 +15,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('jobs', function (Blueprint $table) {
@@ -56,13 +51,10 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('jobs');
-        Schema::dropIfExists('job_batches');
         Schema::dropIfExists('failed_jobs');
+        Schema::dropIfExists('job_batches');
+        Schema::dropIfExists('jobs');
     }
 };

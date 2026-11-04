@@ -1,14 +1,9 @@
 <?php
 
 /**
- * ============================================================================
- * INFRAESTRUTURA LARAVEL (TEMPORÁRIO - BANCO DE DADOS LOCAL)
- * ============================================================================
- * Esta migration atende ao driver local de Cache (CACHE_STORE=database) para
- * desenvolvimento e testes locais enquanto o Redis não está ativo.
- * Na Semana 3 da Sprint, o Ryan Rangel ativará o container Redis no Docker Sail,
- * e o cache passará a rodar em memória (CACHE_STORE=redis).
- * ============================================================================
+ * INFRAESTRUTURA LARAVEL (cache em banco).
+ * Usada enquanto CACHE_STORE=database. Quando o Redis estiver ativo no Docker Sail,
+ * o cache passa para memória (CACHE_STORE=redis) e esta tabela fica sem uso.
  */
 
 use Illuminate\Database\Migrations\Migration;
@@ -17,30 +12,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('cache', function (Blueprint $table) {
             $table->string('key')->primary();
             $table->mediumText('value');
-            $table->integer('expiration');
+            $table->integer('expiration')->index();
         });
 
         Schema::create('cache_locks', function (Blueprint $table) {
             $table->string('key')->primary();
             $table->string('owner');
-            $table->integer('expiration');
+            $table->integer('expiration')->index();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('cache');
         Schema::dropIfExists('cache_locks');
+        Schema::dropIfExists('cache');
     }
 };

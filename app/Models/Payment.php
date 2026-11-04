@@ -22,9 +22,12 @@ class Payment extends Model
         'status',
         'amount',
         'installments',
+        'card_last_four',
+        'card_brand',
         'qr_code_pix',
         'qr_code_base64',
         'response_payload',
+        'paid_at',
     ];
 
     protected function casts(): array
@@ -33,6 +36,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'installments' => 'integer',
             'response_payload' => 'array',
+            'paid_at' => 'datetime',
         ];
     }
 
