@@ -127,6 +127,13 @@ class OrderController extends Controller
             $order = Order::create([
                 'user_id' => $request->user()->id,
                 'address_id' => $address->id,
+                'shipping_zip_code' => $address->zip_code,
+                'shipping_street' => $address->street,
+                'shipping_number' => $address->number,
+                'shipping_complement' => $address->complement,
+                'shipping_neighborhood' => $address->neighborhood,
+                'shipping_city' => $address->city,
+                'shipping_state' => $address->state,
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'shipping_fee' => $shippingFee,

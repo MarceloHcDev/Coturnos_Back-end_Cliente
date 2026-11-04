@@ -4,6 +4,23 @@ Todas as alterações relevantes, refatorações, migrations e instalações de 
 
 ---
 
+## [Sprint_13-10 — Etapa 1] - 2026-10-29
+
+### 🧹 Saneamento de Banco & Contrato de Recuperação de Senha (OWASP A07)
+
+Execução dos itens 2 e 3 da primeira semana da Sprint_13-10 sob responsabilidade de Luis Eduardo (Backend Cliente & Infraestrutura).
+
+- **Desbloqueio D2 — Contrato JSON de Recuperação de Senha (`auth-recuperacao-senha-contrato.md`):**
+    - Especificação oficial dos schemas e contratos de integração para o Front-end (Fabio Matheus), cobrindo `POST /api/v1/auth/esqueci-senha` (Anti-Account Enumeration) e `POST /api/v1/auth/redefinir-senha` (validação de hash de 64 chars, expiração de 60 min e revogação de tokens Sanctum).
+- **Saneamento do Banco de Dados (Remoção de Tabelas e Migrations Órfãs):**
+    - Removidas fisicamente as migrations órfãs de carrinho:
+        - `database/migrations/2026_09_03_000001_create_carts_table.php`
+        - `database/migrations/2026_09_03_000002_create_cart_items_table.php`
+    - Eliminação das tabelas `carts` e `cart_items` do schema relacional, alinhando o banco de dados à decisão arquitetural oficial de manter o carrinho de compras 100% reativo no `localStorage` do cliente (`CartContext.tsx`), com persistência relacional efetuada exclusivamente no Checkout em `orders` e `order_items`.
+    - Executado `php artisan migrate:fresh` com sucesso, atestando schema higienizado e preservação integral dos 89 testes automatizados (345 assertions).
+
+---
+
 ## [Integração Mercado Pago & Pedidos] - 2026-10-18
 
 ### 💳 Pedidos, Checkout Pro Mercado Pago & Webhooks Seguros com HMAC
