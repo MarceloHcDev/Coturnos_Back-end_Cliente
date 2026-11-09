@@ -33,6 +33,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         });
 
+
+
+        // ─────────────────────────────────────────────────────────────────
+        // Carregar as imagens do Hero front-end (cliente)
+        // ─────────────────────────────────────────────────────────────────
+        Route::get('/carousel', [CarouselController::class, 'index']);
+
+
         // ─────────────────────────────────────────────────────────────────
         // Login Social (Google, Facebook, Apple) — Socialite (Semana 2)
         // throttle:10,1 no callback (proteção contra abuso de autenticação)
