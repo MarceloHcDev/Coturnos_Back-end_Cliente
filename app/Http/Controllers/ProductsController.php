@@ -8,9 +8,6 @@ use Illuminate\Http\Request;
 
 class ProductsController extends Controller
 {
-    private const FOLDER = 'produtos';
-    private const PLACEHOLDER = 'placeholder';
-
     // GET /api/v1/products?colecao=elite&aba=promocao&busca=coturno&limit=8
     public function index(Request $request): JsonResponse
     {
@@ -53,8 +50,9 @@ class ProductsController extends Controller
                     'name'       => $p->name,
                     'price'      => $promo ? (float) $p->promotional_price : $base,
                     'oldPrice'   => $promo ? $base : null,
-                    'image'      => $this->imageUrl($p->id, 1, self::PLACEHOLDER),
-                    'hoverImage' => $this->imageUrl($p->id, 2, "{$p->id}_1"),
+                    'image'      => $this->imageUrl($p->image_public_id),
+                    // Sem imagem de hover, usa a principal
+                    'hoverImage' => $this->imageUrl($p->hover_public_id ?? $p->image_public_id),
                     'badge'      => $p->badge,
 
                     // Campos extras do tipo Product (listagem / busca).
@@ -74,16 +72,20 @@ class ProductsController extends Controller
         return response()->json($itens);
     }
 
-    private function imageUrl(int $productId, int $n, string $fallback): string
+    /**
+     * Monta a URL de entrega a partir do public_id salvo no banco.
+     * Retorna null quando o produto não tem imagem cadastrada.
+     */
+    private function imageUrl(?string $publicId): ?string
     {
+        if ($publicId === null || $publicId === '') {
+            return null;
+        }
+
         return sprintf(
-            'https://res.cloudinary.com/ciy3wqfm/image/upload/f_auto,q_auto,d_%s:%s/%s/%s_%d',
+            'https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/%s',
             config('services.cloudinary.cloud_name'),
-            self::FOLDER,
-            $fallback,
-            self::FOLDER,
-            $productId,
-            $n
+            $publicId
         );
     }
 }

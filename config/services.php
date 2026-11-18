@@ -78,4 +78,8 @@ return [
         'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET', env('MERCADO_PAGO_WEBHOOK_SECRET')),
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME', 'ciy3wqfm'),
+    ],
+
 ];

@@ -21,6 +21,8 @@ class Product extends Model
         'collection',        // ex.: 'classico', 'elite' (filtro da home)
         'badge',             // ex.: 'Novo', 'Oferta' (selo no card)
         'description',
+        'image_public_id',   // public_id da imagem principal no Cloudinary
+        'hover_public_id',   // public_id da imagem de hover no Cloudinary
         'base_price',
         'promotional_price',
         'weight',

@@ -3,8 +3,9 @@
 /**
  * PRODUTOS (catálogo).
  *
- * As imagens NÃO ficam no banco: o ProductsController monta a URL do
- * Cloudinary a partir do id (produtos/{id}_{n}).
+ * As imagens ficam no Cloudinary. O banco guarda apenas o public_id devolvido
+ * no upload (image_public_id e hover_public_id). A URL de entrega é montada
+ * pelo ProductsController.
  * Dimensões e peso são usados no cálculo de frete; quando nulos, vale o
  * padrão da tabela packed_products.
  */
@@ -26,6 +27,10 @@ return new class extends Migration
             $table->string('product_type', 60)->nullable();
             $table->string('brand', 60)->nullable();
             $table->text('description')->nullable();
+
+            // Imagens (public_id do Cloudinary, gravado no upload pelo admin)
+            $table->string('image_public_id', 255)->nullable();
+            $table->string('hover_public_id', 255)->nullable();
 
             // Vitrine (home)
             $table->string('collection', 60)->nullable(); // 'classico', 'elite'...
