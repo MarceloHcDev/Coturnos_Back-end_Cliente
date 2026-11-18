@@ -18,6 +18,8 @@ class Product extends Model
         'slug',
         'product_type',
         'brand',
+        'collection',        // ex.: 'classico', 'elite' (filtro da home)
+        'badge',             // ex.: 'Novo', 'Oferta' (selo no card)
         'description',
         'base_price',
         'promotional_price',
@@ -29,13 +31,13 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'base_price' => 'decimal:2',
+        'base_price'        => 'decimal:2',
         'promotional_price' => 'decimal:2',
-        'weight' => 'decimal:2',
-        'height' => 'decimal:2',
-        'width' => 'decimal:2',
-        'length' => 'decimal:2',
-        'active' => 'boolean',
+        'weight'            => 'decimal:2',
+        'height'            => 'decimal:2',
+        'width'             => 'decimal:2',
+        'length'            => 'decimal:2',
+        'active'            => 'boolean',
     ];
 
     public function orderItems(): HasMany

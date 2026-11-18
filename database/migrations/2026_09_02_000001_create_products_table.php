@@ -1,17 +1,12 @@
 <?php
 
 /**
- * PRODUTOS.
+ * PRODUTOS (catálogo).
  *
- * Origem: cliente (slug, preços, dimensões de frete, softDeletes)
- *       + admin (model, color).
- *
- * Preço: base_price/promotional_price guardam o preço VIGENTE (o front do cliente
- * lê direto daqui). O histórico fica em product_prices / product_promotions, que o
- * admin alimenta; ao salvar um preço/promoção, o admin atualiza estas colunas.
- *
- * softDeletes no lugar de is_deleted 'S'/'N': um produto vendido nunca pode ser
- * apagado fisicamente (order_items aponta para ele com RESTRICT).
+ * As imagens NÃO ficam no banco: o ProductsController monta a URL do
+ * Cloudinary a partir do id (produtos/{id}_{n}).
+ * Dimensões e peso são usados no cálculo de frete; quando nulos, vale o
+ * padrão da tabela packed_products.
  */
 
 use Illuminate\Database\Migrations\Migration;
@@ -24,22 +19,35 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 120);
-            $table->string('slug', 140)->unique();
-            $table->string('product_type', 45);            // Coturno Tático, Coturno Militar...
-            $table->string('brand', 45);
-            $table->string('model', 45)->nullable();
-            $table->string('color', 45)->nullable();
-            $table->text('description');
+
+            // Identificação
+            $table->string('name', 150);
+            $table->string('slug', 180)->unique();
+            $table->string('product_type', 60)->nullable();
+            $table->string('brand', 60)->nullable();
+            $table->text('description')->nullable();
+
+            // Vitrine (home)
+            $table->string('collection', 60)->nullable(); // 'classico', 'elite'...
+            $table->string('badge', 40)->nullable();
+
+            // Preço: promotional_price (se menor que base_price) vira o preço atual
             $table->decimal('base_price', 10, 2);
             $table->decimal('promotional_price', 10, 2)->nullable();
-            $table->decimal('weight', 8, 2)->nullable();    // kg  (frete)
-            $table->decimal('height', 8, 2)->nullable();    // cm
-            $table->decimal('width', 8, 2)->nullable();     // cm
-            $table->decimal('length', 8, 2)->nullable();    // cm
-            $table->boolean('active')->default(true)->index();
+
+            // Frete (kg / cm)
+            $table->decimal('weight', 8, 2)->nullable();
+            $table->decimal('height', 8, 2)->nullable();
+            $table->decimal('width', 8, 2)->nullable();
+            $table->decimal('length', 8, 2)->nullable();
+
+            $table->boolean('active')->default(true);
+
             $table->timestamps();
             $table->softDeletes();
+
+            // Consulta da home: where active + collection, order by id
+            $table->index(['active', 'collection']);
         });
     }
 

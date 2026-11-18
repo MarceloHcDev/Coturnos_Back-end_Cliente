@@ -9,6 +9,8 @@ use App\Http\Controllers\FreteController;
 use App\Http\Controllers\MercadoPagoWebhookController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CarouselController;
+use App\Http\Controllers\ProductsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -36,12 +38,6 @@ Route::prefix('v1')->group(function () {
 
 
         // ─────────────────────────────────────────────────────────────────
-        // Carregar as imagens do Hero front-end (cliente)
-        // ─────────────────────────────────────────────────────────────────
-        Route::get('/carousel', [CarouselController::class, 'index']);
-
-
-        // ─────────────────────────────────────────────────────────────────
         // Login Social (Google, Facebook, Apple) — Socialite (Semana 2)
         // throttle:10,1 no callback (proteção contra abuso de autenticação)
         // ─────────────────────────────────────────────────────────────────
@@ -53,6 +49,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/{provider}/confirm-link', [AuthSocialController::class, 'confirmLink'])
             ->middleware('throttle:6,1');
     });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Hero do front-end do cliente (público, sem autenticação)
+    // URL final: /api/v1/carousel
+    // ─────────────────────────────────────────────────────────────────────
+    Route::get('/carousel', [CarouselController::class, 'index']);
+    Route::get('/products', [ProductsController::class, 'index']);
 
     // ─────────────────────────────────────────────────────────────────────
     // Perfil do Usuário e Endereços (Semana 4 — Tarefa 4.3)
