@@ -46,4 +46,12 @@ class Product extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    /**
+     * Imagens do produto (Cloudinary), ordenadas por posição.
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position');
+    }
 }

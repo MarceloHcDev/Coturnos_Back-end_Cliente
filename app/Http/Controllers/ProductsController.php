@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +20,7 @@ class ProductsController extends Controller
         ]);
 
         $itens = Product::query()
+            ->with('images') // carrega as imagens de todos os produtos de uma vez (evita N+1)
             ->where('active', true)
             ->orderBy('id') // antes dos when(): o reorder() da aba sobrescreve
             ->when($data['colecao'] ?? null, fn ($q, $c) => $q->where('collection', $c))
@@ -44,15 +46,19 @@ class ProductsController extends Controller
                 $promo = $p->promotional_price !== null
                     && (float) $p->promotional_price < $base;
 
+                // Imagens vêm da tabela product_images (já ordenadas por position)
+                $main  = $p->images->firstWhere('type', ProductImage::TYPE_MAIN);
+                $hover = $p->images->firstWhere('type', ProductImage::TYPE_HOVER);
+
                 return [
                     // ColecaoItem
                     'id'         => $p->id,
                     'name'       => $p->name,
                     'price'      => $promo ? (float) $p->promotional_price : $base,
                     'oldPrice'   => $promo ? $base : null,
-                    'image'      => $this->imageUrl($p->image_public_id),
+                    'image'      => $this->imageUrl($main),
                     // Sem imagem de hover, usa a principal
-                    'hoverImage' => $this->imageUrl($p->hover_public_id ?? $p->image_public_id),
+                    'hoverImage' => $this->imageUrl($hover ?? $main),
                     'badge'      => $p->badge,
 
                     // Campos extras do tipo Product (listagem / busca).
@@ -73,19 +79,23 @@ class ProductsController extends Controller
     }
 
     /**
-     * Monta a URL de entrega a partir do public_id salvo no banco.
-     * Retorna null quando o produto não tem imagem cadastrada.
+     * Monta a URL de entrega a partir do public_id (e da version) salvos no banco.
+     * A version faz o Cloudinary servir o arquivo novo quando uma imagem é substituída.
+     * Retorna null quando o produto não tem a imagem cadastrada.
      */
-    private function imageUrl(?string $publicId): ?string
+    private function imageUrl(?ProductImage $image): ?string
     {
-        if ($publicId === null || $publicId === '') {
+        if ($image === null || $image->public_id === '') {
             return null;
         }
 
+        $version = $image->version ? "v{$image->version}/" : '';
+
         return sprintf(
-            'https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/%s',
+            'https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/%s%s',
             config('services.cloudinary.cloud_name'),
-            $publicId
+            $version,
+            $image->public_id
         );
     }
 }

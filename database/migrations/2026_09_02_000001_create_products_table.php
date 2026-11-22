@@ -28,10 +28,6 @@ return new class extends Migration
             $table->string('brand', 60)->nullable();
             $table->text('description')->nullable();
 
-            // Imagens (public_id do Cloudinary, gravado no upload pelo admin)
-            $table->string('image_public_id', 255)->nullable();
-            $table->string('hover_public_id', 255)->nullable();
-
             // Vitrine (home)
             $table->string('collection', 60)->nullable(); // 'classico', 'elite'...
             $table->string('badge', 40)->nullable();
