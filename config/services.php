@@ -38,8 +38,48 @@ return [
     'super_frete' => [
         'token' => env('SUPER_FRETE_TOKEN'),
         'url' => env('SUPER_FRETE_URL', 'https://sandbox.superfrete.com/api/v0/calculator'),
+        'from_postal_code' => env('SUPER_FRETE_FROM_CEP', '01153000'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | OAuth Socialite Services (Semana 2 - Luis Eduardo)
+    |--------------------------------------------------------------------------
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/api/v1/auth/google/callback'),
+    ],
 
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', env('APP_URL').'/api/v1/auth/facebook/callback'),
+    ],
+
+    'apple' => [
+        'client_id' => env('APPLE_CLIENT_ID'),
+        'client_secret' => env('APPLE_CLIENT_SECRET'),
+        'redirect' => env('APPLE_REDIRECT_URI', env('APP_URL').'/api/v1/auth/apple/callback'),
+    ],
+
+    // Whitelist de e-mails autorizados em homologação (vazio = produção, sem restrição)
+    'social_allowed_emails' => env('SOCIAL_AUTH_ALLOWED_EMAILS', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mercado Pago Configuration (Checkout Pro / Webhooks)
+    |--------------------------------------------------------------------------
+    */
+    'mercado_pago' => [
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN', env('MERCADO_PAGO_ACCESS_TOKEN')),
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY', env('MERCADO_PAGO_PUBLIC_KEY')),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET', env('MERCADO_PAGO_WEBHOOK_SECRET')),
+    ],
+
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME', 'ciy3wqfm'),
+    ],
 
 ];
